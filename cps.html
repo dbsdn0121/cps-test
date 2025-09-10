@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CPS Click Test — Mouse / J Key</title>
+<style>
+  :root{
+    --bg:#0b1220; --card:#121a2a; --ink:#e8f0ff; --sub:#98a5c0;
+    --accent:#6aa2ff; --accent2:#7cf7c3; --warn:#ff6b6b; --tab:#1a2540;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+    color:var(--ink); background: radial-gradient(1200px 600px at 20% -10%, #1a2540 0%, transparent 60%),
+                       radial-gradient(1000px 800px at 120% 20%, #162036 0%, transparent 60%),
+                       var(--bg);
+    min-height:100svh; display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .wrap{width:min(980px,100%); display:grid; gap:18px}
+  header{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
+  h1{margin:0; font-size:22px; letter-spacing:.3px}
+  .desc{color:var(--sub); font-size:13px}
+
+  .tabs{display:flex; gap:8px; flex-wrap:wrap}
+  .tab{
+    background:var(--tab); border:1px solid #2a3a5e; color:var(--ink);
+    padding:10px 14px; border-radius:999px; font-weight:800; cursor:pointer;
+  }
+  .tab[data-active="true"]{
+    background:linear-gradient(90deg, #2b66ff22, #1fd6a322);
+    border-color:#3b5f9a;
+    outline:2px solid #2b66ff55;
+  }
+
+  .controls{
+    display:flex; gap:8px; flex-wrap:wrap; align-items:center
+  }
+  select,.btn{appearance:none; border:none; outline:none}
+  select{
+    background:#10192b; color:var(--ink); border:1px solid #243354; border-radius:10px;
+    padding:10px 12px; min-width:92px; font-weight:700;
+  }
+  .btn{
+    background:linear-gradient(90deg, #2b66ff, #1fd6a3);
+    color:#001224; font-weight:900; padding:12px 18px; border-radius:12px; cursor:pointer;
+    transition:transform .06s ease, box-shadow .15s ease; border:0; letter-spacing:.2px;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn.secondary{background:#0f1a2b; color:var(--ink); border:1px solid #2a3b61}
+  .btn.ghost{background:#10192b; color:var(--ink); border:1px dashed #34507f}
+
+  .card{
+    background:linear-gradient(180deg, #121a2a, #0f1726);
+    border:1px solid #22304d; border-radius:16px; padding:18px; box-shadow:0 4px 24px rgba(0,0,0,.3);
+  }
+
+  .headline{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px}
+  .modeTitle{font-weight:900; letter-spacing:.3px; margin:0}
+  .kbd{
+    display:inline-block; padding:2px 6px; border-radius:6px; border:1px solid #2b3a5e;
+    background:#0e1830; color:#b8c7e8; font-weight:800; font-size:12px; vertical-align:baseline;
+  }
+
+  .startRow{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:8px 0 14px}
+  .startBig{
+    font-size:22px; padding:14px 22px; border-radius:14px;
+    box-shadow:0 10px 30px rgba(43,102,255,.25);
+  }
+  .startHint{color:var(--sub); font-size:12px}
+
+  .statRow{display:flex; gap:12px; flex-wrap:wrap; margin-top:6px}
+  .stat{
+    background:#0c1424; border:1px solid #1e2a47; border-radius:10px; padding:10px 12px; min-width:120px;
+  }
+  .stat .label{color:var(--sub); font-size:12px}
+  .stat .value{font-size:22px; font-weight:800}
+  .best{color:#b7ffdd; font-weight:800}
+
+  .arena{
+    margin-top:12px; background:#0b1324; border:1px dashed #2a3a5e; border-radius:12px;
+    height:260px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden;
+  }
+  .arena .tap{
+    user-select:none; -webkit-user-select:none; -ms-user-select:none;
+    background:linear-gradient(180deg, #1b2a48, #15233f);
+    border:1px solid #2d436f; border-radius:14px; padding:20px 28px; font-size:20px; font-weight:900; cursor:pointer;
+    transition:transform .05s ease, box-shadow .15s ease;
+    box-shadow:0 6px 20px rgba(0,0,0,.35), inset 0 -2px 0 rgba(255,255,255,.06);
+  }
+  .arena .tap:active{transform:scale(.98)}
+  .hint{position:absolute; bottom:10px; left:50%; transform:translateX(-50%); color:var(--sub); font-size:12px}
+
+  .progress{height:10px; background:#0e1629; border:1px solid #203055; border-radius:999px; overflow:hidden; margin-top:10px}
+  .bar{height:100%; width:0%; background:linear-gradient(90deg, var(--accent), var(--accent2)); transition:width .1s linear}
+
+  footer{color:var(--sub); font-size:12px; text-align:center; margin-top:8px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>CPS Click Test</h1>
+        <div class="desc">원하는 모드를 고르고, <b>큰 START 버튼</b>을 누르거나 <b>첫 입력</b>으로 자동 시작! (종료 후에는 시작 버튼을 눌러 재시작)</div>
+      </div>
+      <div class="controls">
+        <label for="duration">테스트 시간</label>
+        <select id="duration" aria-label="테스트 시간">
+          <option value="1">1초</option>
+          <option value="5" selected>5초</option>
+          <option value="10">10초</option>
+          <option value="15">15초</option>
+        </select>
+      </div>
+    </header>
+
+    <div class="tabs" role="tablist" aria-label="측정 모드 선택">
+      <button class="tab" id="tabMouse" role="tab" aria-selected="true" data-active="true">🖱️ 마우스 측정</button>
+      <button class="tab" id="tabKey" role="tab" aria-selected="false">⌨️ 키보드(J) 측정</button>
+    </div>
+
+    <!-- MODE CARD (single view) -->
+    <section class="card" id="modeCard" aria-live="polite">
+      <div class="headline">
+        <h2 class="modeTitle" id="modeTitle">마우스 클릭 CPS</h2>
+        <button class="btn ghost" id="switchBtn">⌨️ 키보드 측정으로 이동</button>
+      </div>
+
+      <div class="startRow">
+        <button class="btn startBig" id="startBtn">▶ START (S)</button>
+        <button class="btn secondary" id="resetBtn" title="모든 수치 리셋">Reset (R)</button>
+        <span class="startHint">첫 입력 자동 시작은 <b>처음(Idle)</b> 상태에서만 작동합니다.</span>
+      </div>
+
+      <div class="statRow">
+        <div class="stat"><div class="label">실시간 CPS</div><div class="value" id="liveCps">0.00</div></div>
+        <div class="stat"><div class="label">총 입력 수</div><div class="value" id="totalCount">0</div></div>
+        <div class="stat"><div class="label">남은 시간</div><div class="value" id="remainTime">0.0s</div></div>
+        <div class="stat"><div class="label">최고 기록</div><div class="value best" id="bestCps">-</div></div>
+      </div>
+
+      <div class="arena" id="arena" role="button" tabindex="0" aria-label="측정 영역">
+        <div class="tap" id="tapText">여길 클릭!</div>
+        <div class="hint" id="hintText">테스트 중: 이 영역 안의 입력만 카운트됩니다.</div>
+      </div>
+      <div class="progress" aria-hidden="true"><div class="bar" id="progBar"></div></div>
+    </section>
+
+    <footer>Tip: Alt+Reset → 최고 기록 초기화. 단축키: <span class="kbd">S</span> 시작, <span class="kbd">R</span> 리셋, <span class="kbd">1/5/0</span> 시간 변경(0=10초).</footer>
+  </div>
+
+<script>
+(function(){
+  // ===== Utilities =====
+  const $ = s => document.querySelector(s);
+  const clamp = (n,min,max)=>Math.max(min,Math.min(max,n));
+  const fmt2 = n => (Math.round(n*100)/100).toFixed(2);
+
+  // ===== Elements =====
+  const tabMouse = $('#tabMouse');
+  const tabKey   = $('#tabKey');
+  const modeTitle= $('#modeTitle');
+  const switchBtn= $('#switchBtn');
+
+  const durationSel = $('#duration');
+  const startBtn = $('#startBtn');
+  const resetBtn = $('#resetBtn');
+
+  const liveCps = $('#liveCps');
+  const totalCount = $('#totalCount');
+  const remainTime = $('#remainTime');
+  const bestCps = $('#bestCps');
+
+  const arena = $('#arena');
+  const tapText = $('#tapText');
+  const hintText = $('#hintText');
+  const progBar = $('#progBar');
+
+  // ===== State =====
+  // phase: 'idle' | 'running' | 'finished'
+  let phase = 'idle';
+  let mode = 'mouse'; // 'mouse' | 'key'
+  let config = { totalMs: 5000 };
+  let state = {
+    startAt:0, timerId:null,
+    counts: { mouse:0, key:0 },
+  };
+
+  // LocalStorage keys
+  const LS_BEST_MOUSE = 'cps_best_mouse';
+  const LS_BEST_KEY   = 'cps_best_key';
+
+  // ===== Mode handling =====
+  function setMode(m){
+    mode = m;
+    const isMouse = mode==='mouse';
+    tabMouse.dataset.active = String(isMouse);
+    tabKey.dataset.active = String(!isMouse);
+    tabMouse.setAttribute('aria-selected', String(isMouse));
+    tabKey.setAttribute('aria-selected', String(!isMouse));
+
+    modeTitle.textContent = isMouse ? '마우스 클릭 CPS' : '키보드 J 키 CPS';
+    switchBtn.textContent = isMouse ? '⌨️ 키보드 측정으로 이동' : '🖱️ 마우스 측정으로 이동';
+    tapText.innerHTML = isMouse ? '여길 클릭!' : '여기 포커스 후 <span class="kbd">J</span> 키 연타!';
+    hintText.innerHTML = isMouse
+      ? '테스트 중: 이 영역 안에서의 클릭만 카운트됩니다.'
+      : '테스트 중: <span class="kbd">J</span> 키만 카운트됩니다. (다른 키 무시)';
+
+    loadBest();
+    resetCountsOnly(); // 모드 전환 시 idle로 되돌림
+    arena.focus({preventScroll:true});
+  }
+
+  // ===== Best load/save =====
+  function loadBest(){
+    const k = (mode==='mouse') ? LS_BEST_MOUSE : LS_BEST_KEY;
+    const v = localStorage.getItem(k);
+    bestCps.textContent = v ? parseFloat(v).toFixed(2) : '-';
+  }
+  function maybeSaveBest(cps){
+    const k = (mode==='mouse') ? LS_BEST_MOUSE : LS_BEST_KEY;
+    const prev = parseFloat(localStorage.getItem(k) || '0');
+    if (!isFinite(prev) || cps > prev){
+      localStorage.setItem(k, String(cps));
+      loadBest();
+    }
+  }
+
+  // ===== Timer / Render =====
+  function updateUI(){
+    const now = performance.now();
+    const elapsed = clamp(now - state.startAt, 0, config.totalMs);
+    const remain = clamp(config.totalMs - elapsed, 0, config.totalMs);
+    const sec = remain/1000;
+    const count = state.counts[mode] || 0;
+    const cps = elapsed>0 ? count / (elapsed/1000) : 0;
+
+    liveCps.textContent = fmt2(cps);
+    totalCount.textContent = count;
+    remainTime.textContent = sec.toFixed(1)+'s';
+    progBar.style.width = (elapsed/config.totalMs*100)+'%';
+  }
+
+  function stopAndFinalize(){
+    clearInterval(state.timerId); state.timerId=null;
+    phase = 'finished';
+    const final = state.counts[mode] / (config.totalMs/1000);
+    maybeSaveBest(final);
+    progBar.style.width = '100%';
+    updateUI();
+    flash(arena);
+    // START 버튼 라벨 변경
+    startBtn.textContent = '↺ RESTART (S)';
+  }
+
+  function tick(){
+    updateUI();
+    if(performance.now() - state.startAt >= config.totalMs){
+      stopAndFinalize();
+    }
+  }
+
+  function start(prime){ // prime: 'mouse' | 'key' | null
+    // idle일 때만 자동 시작 허용
+    if(phase !== 'idle') return;
+    state.counts.mouse = 0;
+    state.counts.key = 0;
+    state.startAt = performance.now();
+    phase = 'running';
+    startBtn.textContent = '▶ RUNNING…';
+    arena.focus({preventScroll:true});
+    updateUI();
+    state.timerId = setInterval(tick, 50);
+
+    if(prime === 'mouse') { state.counts.mouse += 1; updateUI(); }
+    if(prime === 'key')   { state.counts.key   += 1; updateUI(); }
+  }
+
+  function resetAll(){
+    if(state.timerId) clearInterval(state.timerId);
+    state.timerId=null;
+    state.counts.mouse=0; state.counts.key=0;
+    state.startAt=performance.now();
+    progBar.style.width='0%';
+    phase = 'idle';
+    startBtn.textContent = '▶ START (S)';
+    updateUI();
+  }
+
+  function resetCountsOnly(){
+    if(state.timerId) { clearInterval(state.timerId); state.timerId=null; }
+    state.counts.mouse=0; state.counts.key=0;
+    progBar.style.width='0%';
+    phase = 'idle';
+    startBtn.textContent = '▶ START (S)';
+    liveCps.textContent='0.00';
+    totalCount.textContent='0';
+    remainTime.textContent=(config.totalMs/1000).toFixed(1)+'s';
+  }
+
+  function flash(el){
+    el.animate([
+      {boxShadow:'0 0 0 0 rgba(124,247,195,0.0)'},
+      {boxShadow:'0 0 0 10px rgba(124,247,195,0.25)'},
+      {boxShadow:'0 0 0 0 rgba(124,247,195,0.0)'}
+    ], {duration:500, easing:'ease-out'});
+  }
+
+  // ===== Handlers =====
+  tabMouse.addEventListener('click', ()=> setMode('mouse'));
+  tabKey.addEventListener('click',   ()=> setMode('key'));
+  switchBtn.addEventListener('click',()=> setMode(mode==='mouse'?'key':'mouse'));
+
+  durationSel.addEventListener('change', ()=>{
+    const sec = parseInt(durationSel.value,10);
+    config.totalMs = (isFinite(sec)?sec:5) * 1000;
+    resetCountsOnly();
+  });
+
+  startBtn.addEventListener('click', ()=>{
+    if(phase === 'running') return;
+    // finished 상태에서도 버튼으로 재시작 가능
+    if(phase === 'finished' || phase === 'idle'){
+      phase = 'idle'; // 버튼 시작은 항상 새로
+      start(null);
+    }
+  });
+
+  resetBtn.addEventListener('click', (ev)=>{
+    if (ev.altKey){
+      localStorage.removeItem(LS_BEST_MOUSE);
+      localStorage.removeItem(LS_BEST_KEY);
+      loadBest();
+    }
+    resetAll();
+  });
+
+  // Mouse input
+  arena.addEventListener('click', (e)=>{
+    if(mode!=='mouse') return;
+    if(phase === 'idle'){
+      start('mouse'); // 첫 클릭 자동 시작 (idle에서만)
+    }else if(phase === 'running'){
+      state.counts.mouse += 1;
+      updateUI();
+    }else{
+      // finished: 자동 시작 금지. 힌트 펄스만.
+      flash(arena);
+    }
+    const t = e.target.closest('.tap');
+    if(t){ t.animate([{transform:'scale(1)'},{transform:'scale(.96)'},{transform:'scale(1)'}],{duration:90}); }
+  });
+
+  // Keyboard input (J)
+  function isTypingInInput(ev){
+    const tag = (ev.target && ev.target.tagName) ? ev.target.tagName.toLowerCase() : '';
+    return tag==='input' || tag==='textarea' || tag==='select' || ev.isContentEditable;
+  }
+  window.addEventListener('keydown', (ev)=>{
+    if(isTypingInInput(ev)) return;
+
+    // Global shortcuts
+    if(ev.key==='s' || ev.key==='S'){
+      if(phase !== 'running'){ phase='idle'; start(null); }
+    }
+    if(ev.key==='r' || ev.key==='R'){ resetAll(); }
+    if(['1','5'].includes(ev.key)){ durationSel.value = ev.key; durationSel.dispatchEvent(new Event('change')); }
+    if(ev.key==='0'){ durationSel.value = '10'; durationSel.dispatchEvent(new Event('change')); }
+
+    // During test, prevent page scroll on arrows/space
+    if(phase==='running' && [' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(ev.key)){
+      ev.preventDefault();
+    }
+
+    // Count J in key mode
+    if(mode==='key' && (ev.key==='j' || ev.key==='J')){
+      if(phase === 'idle'){
+        start('key'); // 첫 입력 자동 시작 (idle에서만)
+      }else if(phase === 'running'){
+        state.counts.key += 1;
+        updateUI();
+      }else{
+        // finished: 자동 시작 금지
+        flash(arena);
+      }
+    }
+  }, {capture:true});
+
+  // Accessibility: Enter/Space on arena
+  arena.addEventListener('keydown', (ev)=>{
+    if(ev.key==='Enter' || ev.key===' '){
+      if(phase==='idle'){
+        ev.preventDefault();
+        start(null);
+      }else if(phase==='running' && mode==='mouse' && ev.key==='Enter'){
+        // 엔터는 마우스 모드에서만 카운트 보너스 (선택)
+        ev.preventDefault();
+        state.counts.mouse += 1; updateUI();
+      }else{
+        ev.preventDefault();
+      }
+    }
+  });
+
+  // ===== Init =====
+  loadBest();
+  setMode('mouse'); // default
+  resetCountsOnly();
+})();
+</script>
+</body>
+</html>
